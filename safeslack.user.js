@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Safe Slack
 // @namespace    http://spenserj.com/
-// @version      0.1.4
+// @version      0.1.5
 // @description  Lock Slack when the session has been idle
 // @author       Spenser Jones <hello@spenserj.com>
 // @match        https://spamsle.slack.com/*
@@ -31,47 +31,45 @@ function newStylesheet(src) {
 
 newStylesheet('https://rawgit.com/SpenserJ/SafeSlack/master/dist/css/style.css');
 
+var $overlay;
+function initializeOverlay() {
+  var $form = $('<form>');
+  $form.append('<div class="logo">');
+  $form.append('<input type="text" id="safeslack_password">');
+  $form.append('<div class="actions"><input type="submit" value="Google Search"><input type="submit" value="I\'m Feeling Lucky"></div>');
+
+  $form.submit(function (e) {
+    e.preventDefault();
+    var password = $('#safeslack_password').val();
+    if (password !== 'Spamsicey') {
+      document.location.href = 'https://www.google.ca/webhp?hl=en#hl=en&q=' + password;
+      return false;
+    }
+    document.title = oldTitle;
+    isLocked = false;
+    $('body').removeClass('safeslack').removeClass('cover-google');
+    $overlay.hide();
+  });
+
+  $overlay = $('<div id="safeslack-overlay">').append($form).hide().appendTo('body');
+}
+
 function lockSlack() {
   if (isLocked === true) { return; }
   isLocked = true;
   oldTitle = document.title;
-  document.title = 'Down for maintenace';
+  document.title = 'Google';
   
   $('body').addClass('safeslack').addClass('cover-google');
   
-  TS.generic_dialog.start({
-    title: "Website is down for maintenance.",
-    body: '<div class="logo"></div><br /><input type="text" id="safeslack_password">',
-    show_cancel_button: false,
-    show_go_button: true,
-    go_button_text: "Google Search",
-    esc_for_ok: false,
-    fullscreen: true,
-    enter_always_gos: true,
-    on_go: function () {
-      var password = $('#safeslack_password').val();
-      if (password !== 'Spamsicey') {
-        document.location.href = 'https://www.google.ca/webhp?hl=en#hl=en&q=' + password;
-        return false;
-      }
-      document.title = oldTitle;
-      isLocked = false;
-    $('body').removeClass('safeslack').removeClass('cover-google');
-      return true;
-    },
-    on_show: function () {
-      var $password = $('#safeslack_password');
-      $password.focus().blur(function () { setTimeout(function () { $password.focus(); }, 0); });
-    },
-  })
+  $overlay.show();
+  var $password = $('#safeslack_password');
+  $password.focus().blur(function () { setTimeout(function () { $password.focus(); }, 0); });
 };
 
 document.addEventListener("DOMContentLoaded", function(event) {
-  var immediateLock = setInterval(function () {
-    if (typeof TS.templates.fs_modal !== 'function') { return; }
-    clearInterval(immediateLock);
-    lockSlack();
-  }, 50);
+  initializeOverlay();
+  lockSlack();
 
   var lastActivity = Date.now();
   var timedLock = setInterval(function () {
