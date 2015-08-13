@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Safe Slack
 // @namespace    http://spenserj.com/
-// @version      0.1.3
+// @version      0.1.4
 // @description  Lock Slack when the session has been idle
 // @author       Spenser Jones <hello@spenserj.com>
 // @match        https://spamsle.slack.com/*
 // @grant        none
-// @downloadUrl  http://labs.spenserj.com/joeys/safeslack.user.js
-// @updateUrl    http://labs.spenserj.com/joeys/safeslack.user.js
+// @downloadUrl  https://rawgit.com/SpenserJ/SafeSlack/master/safeslack.user.js
+// @updateUrl    https://rawgit.com/SpenserJ/SafeSlack/master/safeslack.user.js
+// @run-at       document-start
 // ==/UserScript==
 
 // How many minutes can you be inactive in Slack before it locks?
@@ -17,6 +18,18 @@ var slackMaxInactivity = 5;
 
 var oldTitle = '';
 var isLocked = false;
+var head = document.getElementsByTagName('head')[0];
+
+function newStylesheet(src) {
+  var style = document.createElement('link');
+  style.rel = 'stylesheet';
+  style.type = 'text/css';
+  style.href = src;
+  style.sfw = 'true';
+  head.appendChild(style);
+}
+
+newStylesheet('https://rawgit.com/SpenserJ/SafeSlack/master/dist/css/style.css');
 
 function lockSlack() {
   if (isLocked === true) { return; }
@@ -24,23 +37,26 @@ function lockSlack() {
   oldTitle = document.title;
   document.title = 'Down for maintenace';
   
+  $('body').addClass('safeslack').addClass('cover-google');
+  
   TS.generic_dialog.start({
     title: "Website is down for maintenance.",
-    body: 'If you are the administrator, please enter your password here:<br /><strong id="safeslack_error" style="color: #d00000; padding: 12px 0; display: none;"></strong><input type="password" id="safeslack_password">',
+    body: '<div class="logo"></div><br /><input type="text" id="safeslack_password">',
     show_cancel_button: false,
     show_go_button: true,
-    go_button_text: "Login",
+    go_button_text: "Google Search",
     esc_for_ok: false,
     fullscreen: true,
     enter_always_gos: true,
     on_go: function () {
       var password = $('#safeslack_password').val();
       if (password !== 'Spamsicey') {
-        $('#safeslack_error').text('That password is incorrect').clearQueue().slideDown().delay(5 * 1000).slideUp();
+        document.location.href = 'https://www.google.ca/webhp?hl=en#hl=en&q=' + password;
         return false;
       }
       document.title = oldTitle;
       isLocked = false;
+    $('body').removeClass('safeslack').removeClass('cover-google');
       return true;
     },
     on_show: function () {
@@ -50,19 +66,21 @@ function lockSlack() {
   })
 };
 
-var immediateLock = setInterval(function () {
-  if (typeof TS.templates.fs_modal !== 'function') { return; }
-  clearInterval(immediateLock);
-  lockSlack();
-}, 50);
-
-var lastActivity = Date.now();
-var timedLock = setInterval(function () {
-  if (lastActivity < (Date.now() - (slackMaxInactivity * 60 * 1000))) {
+document.addEventListener("DOMContentLoaded", function(event) {
+  var immediateLock = setInterval(function () {
+    if (typeof TS.templates.fs_modal !== 'function') { return; }
+    clearInterval(immediateLock);
     lockSlack();
-  }
-}, 1000);
+  }, 50);
 
-$('body')
-  .mousemove(function () { lastActivity = Date.now(); })
-  .keypress(function  () { lastActivity = Date.now(); });
+  var lastActivity = Date.now();
+  var timedLock = setInterval(function () {
+    if (lastActivity < (Date.now() - (slackMaxInactivity * 60 * 1000))) {
+      lockSlack();
+    }
+  }, 1000);
+
+  $('body')
+    .mousemove(function () { lastActivity = Date.now(); })
+    .keypress(function  () { lastActivity = Date.now(); });
+});
