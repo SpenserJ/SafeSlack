@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Safe Slack
 // @namespace    http://spenserj.com/
-// @version      0.1.6
-// @description  Lock Slack when the session has been idle
+// @version      0.2.0
+// @description  Slack discretely pretends to be other applications, to hide from prying eyes.
 // @author       Spenser Jones <hello@spenserj.com>
 // @match        https://spamsle.slack.com/*
 // @grant        none
@@ -67,11 +67,29 @@ function lockSlack() {
   
   $overlay.show();
   $password.focus().blur(function () { setTimeout(function () { $password.focus(); }, 0); });
-};
+}
+
+function swapNotificationStyles() {
+  // If Slack isn't ready yet, wait 100ms.
+  if (typeof TS.ui.growls.show === 'undefined') {
+    return setTimeout(swapNotificationStyles, 100);
+  }
+
+  var oldNotifications = TS.ui.growls.show;
+  TS.ui.growls.show = function (title, body, unknown, notification) {
+    TS.boot_data.img.app_icon = 'https://cdn.rawgit.com/SpenserJ/SafeSlack/master/dist/outlook.png';
+    var channel = title.replace(/New message (in|from) /, '');
+    var from = body.match(/^(.*?):/)[1];
+    title = "New email received";
+    body = notification.text = 'From: ' + from + '\nSubject: ' + channel;
+    oldNotifications(title, body, unknown, notification);
+  };
+}
 
 document.addEventListener("DOMContentLoaded", function(event) {
   initializeOverlay();
   lockSlack();
+  swapNotificationStyles();
 
   var lastActivity = Date.now();
   var timedLock = setInterval(function () {
