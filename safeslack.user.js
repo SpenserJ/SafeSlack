@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Safe Slack
 // @namespace    http://spenserj.com/
-// @version      0.2.0
+// @version      0.2.1
 // @description  Slack discretely pretends to be other applications, to hide from prying eyes.
 // @author       Spenser Jones <hello@spenserj.com>
 // @match        https://spamsle.slack.com/*
